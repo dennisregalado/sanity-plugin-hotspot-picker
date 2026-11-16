@@ -1,6 +1,6 @@
 {
   "name": "sanity-plugin-hotspot-picker",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A Sanity Studio array input that places each item as a draggable spot on a sibling image field.",
   "keywords": [
     "sanity",
