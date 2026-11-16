@@ -41,9 +41,9 @@ export interface HotspotPickerPluginOptions extends Omit<HotspotPickerOptions, '
   /** Overrides for the `image` field (`fields`, `options`, `title`...). Hotspot/crop is on. */
   image?: Partial<Omit<ImageDefinition, 'name' | 'type'>>
   /**
-   * Each item's `reference` field (`to` is required), e.g. `{title: 'Product', to: [{type:
-   * 'product'}]}`. Required by default. The spot's tooltip previews the referenced document.
-   * Leave out for items without a reference.
+   * Each item's `reference` field; `to` is required (e.g. a Product reference to the `product`
+   * type). Required by default. The spot's popover previews the referenced document. Leave out
+   * for items without a reference.
    */
   reference?: Omit<ReferenceDefinition, 'name' | 'type'>
   /** The items in the `items` array. */

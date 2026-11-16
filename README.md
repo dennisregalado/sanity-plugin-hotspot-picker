@@ -125,6 +125,15 @@ spots: [{_key: 'a1b2c3d4e5f6', _type: 'spot', x: 42.5, y: 61.25, product: {_ref:
 
 Position each spot with `left: ${x}%; top: ${y}%` over an image rendered with the same crop.
 
+## Releasing
+
+Publishing runs from GitHub Actions; nobody runs `npm publish` locally.
+
+1. Bump `version` in `package.json` in your PR (`1.2.0-beta.1` style versions publish under `next`).
+2. Merge to `main`. The Publish workflow publishes that version to npm with provenance, then tags it and creates the GitHub release `v<version>`. A merge without a version bump publishes nothing.
+
+CI runs lint, typecheck and the build on every PR and push to `main`, and `prepublishOnly` runs them again before publishing.
+
 ## License
 
 MIT © Dennis Regalado

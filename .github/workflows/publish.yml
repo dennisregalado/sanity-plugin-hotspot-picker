@@ -1,0 +1,60 @@
+name: Publish
+
+# Merging to main publishes package.json's version to npm, then tags it and creates a GitHub
+# release. A merge without a version bump finds the version already published and does nothing.
+# Versions with a prerelease part (1.2.0-beta.1) publish under the `next` dist-tag.
+# npm trusts this workflow directly (trusted publishing): no token or 2FA code is needed.
+# Set up once on npmjs.com: package Settings > Trusted publishing > GitHub Actions,
+# repository dennisregalado/sanity-plugin-hotspot-picker, workflow publish.yml.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: npm
+      - name: Check whether this version is published
+        id: version
+        run: |
+          name=$(node -p "require('./package.json').name")
+          version=$(node -p "require('./package.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [ "$(npm view "$name@$version" version 2>/dev/null)" = "$version" ]; then
+            echo "$name@$version is already published"
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.version.outputs.published == 'false'
+        run: npm ci
+      # prepublishOnly runs lint, typecheck and the build.
+      - name: Publish to npm
+        if: steps.version.outputs.published == 'false'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          tag=latest
+          case "$VERSION" in *-*) tag=next ;; esac
+          npm publish --provenance --access public --tag "$tag"
+      - name: Tag and create the GitHub release
+        if: steps.version.outputs.published == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: gh release create "v$VERSION" --generate-notes --target "$GITHUB_SHA"
