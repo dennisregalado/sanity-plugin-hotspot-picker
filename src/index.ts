@@ -1,38 +1,34 @@
 import React from 'react'
 import {
   type ArrayOfObjectsInputProps,
-  defineField,
   definePlugin,
-  type FieldDefinition,
   type InputProps,
   isArrayOfObjectsSchemaType,
 } from 'sanity'
 
 import {HotspotPickerInput} from './HotspotPickerInput'
+import {createHotspotType} from './schema'
 import type {HotspotPickerInputProps, HotspotPickerPluginOptions} from './types'
 
 /**
- * Turns any array field with `options.hotspotPicker` into a hotspot picker: each item is a
- * draggable spot on a sibling image field, with its position stored as `x`/`y` percentages.
+ * Registers the `hotspotImage` object type: an `image` and an array of `items`, each a draggable
+ * spot on the image with a `reference` and an `x`/`y` position. Also turns any array field with
+ * `options.hotspotPicker` into a spot picker.
  *
  * @example
  * ```ts
  * // sanity.config.ts
- * plugins: [hotspotPicker()]
+ * plugins: [hotspotPicker({reference: {title: 'Product', to: [{type: 'product'}]}})]
  *
  * // schema
- * defineField({
- *   name: 'spots',
- *   type: 'array',
- *   options: {hotspotPicker: {imagePath: 'image'}},
- *   of: [defineArrayMember({type: 'object', name: 'spot', fields: [...hotspotFields(), ...]})],
- * })
+ * defineField({name: 'shoppable', type: 'hotspotImage'})
  * ```
  */
 export const hotspotPicker = definePlugin<HotspotPickerPluginOptions | void>((options) => {
   const defaults = options ?? undefined
   return {
     name: 'hotspot-picker',
+    schema: {types: [createHotspotType(defaults)]},
     form: {
       components: {
         input: (props: InputProps) => {
@@ -53,23 +49,6 @@ export const hotspotPicker = definePlugin<HotspotPickerPluginOptions | void>((op
 })
 
 /**
- * The hidden `x` and `y` fields a spot needs (percentages of the image, set by dragging).
- * Spread them into the array member's `fields`.
- */
-export function hotspotFields(): FieldDefinition[] {
-  const coordinate = (name: 'x' | 'y') =>
-    defineField({
-      name,
-      type: 'number',
-      readOnly: true,
-      hidden: true,
-      initialValue: 50,
-      validation: (rule) => rule.required().min(0).max(100),
-    })
-  return [coordinate('x'), coordinate('y')]
-}
-
-/**
  * Use the input without the plugin, as a field's `components.input`. Set the field's
  * `options.hotspotPicker` (or `true`) for its options.
  */
@@ -78,8 +57,10 @@ export function HotspotPicker(props: ArrayOfObjectsInputProps): React.ReactEleme
 }
 
 export {HotspotPickerInput}
+export {DEFAULT_TYPE_NAME, hotspotFields} from './schema'
 export type {
   HotspotArraySchemaType,
+  HotspotImageValue,
   HotspotItem,
   HotspotPickerInputProps,
   HotspotPickerOptions,

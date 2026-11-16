@@ -1,7 +1,7 @@
 import {PinIcon} from '@sanity/icons/Pin'
 import {WarningOutlineIcon} from '@sanity/icons/WarningOutline'
-import {Button, Card, type Placement} from '@sanity/ui'
-import {Tooltip} from '@sanity/ui/tooltip'
+import {Button, type Placement} from '@sanity/ui'
+import {Popover} from '@sanity/ui/popover'
 import {
   type ComponentType,
   type MouseEvent,
@@ -9,19 +9,26 @@ import {
   type ReactNode,
   type RefObject,
   useCallback,
+  useEffect,
   useRef,
   useState,
 } from 'react'
-import type {ObjectSchemaType, RenderPreviewCallback} from 'sanity'
+import type {ObjectSchemaType, Path, RenderPreviewCallback} from 'sanity'
 
+import {SpotPreview, useReferencePaneOpen, useReferenceTarget} from './SpotPreview'
 import type {HotspotItem} from './types'
 import {toPercent} from './utils'
 
 /** Pointer travel (px) before a press counts as a drag rather than a click. */
 const DRAG_THRESHOLD = 3
 
+/** Delay (ms) before the popover closes, so the pointer can cross from the spot onto it. */
+const CLOSE_DELAY = 150
+
 export interface SpotProps {
   value: HotspotItem
+  /** Path of this item, for opening its reference. */
+  itemPath: Path
   frameRef: RefObject<HTMLDivElement | null>
   schemaType: ObjectSchemaType
   renderPreview: RenderPreviewCallback
@@ -36,7 +43,26 @@ export interface SpotProps {
 /** A draggable marker. Drag to move it, click to open the item. */
 export function Spot(props: SpotProps): ReactNode {
   const {value, frameRef, schemaType, renderPreview, invalid, readOnly, icon, placement} = props
-  const {onMove, onOpen} = props
+  const {itemPath, onMove, onOpen} = props
+
+  // Open while the pointer is over the spot or its popover, and while its reference is open.
+  const [hovered, setHovered] = useState(false)
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const cancelClose = useCallback(() => {
+    if (closeTimer.current) clearTimeout(closeTimer.current)
+    closeTimer.current = null
+  }, [])
+  const handleEnter = useCallback(() => {
+    cancelClose()
+    setHovered(true)
+  }, [cancelClose])
+  const handleLeave = useCallback(() => {
+    cancelClose()
+    closeTimer.current = setTimeout(() => setHovered(false), CLOSE_DELAY)
+  }, [cancelClose])
+  useEffect(() => cancelClose, [cancelClose])
+  const target = useReferenceTarget(value, schemaType)
+  const referencePaneOpen = useReferencePaneOpen(target)
 
   // Local position while dragging; the stored value is only patched on release.
   const [dragPosition, setDragPosition] = useState<{x: number; y: number} | null>(null)
@@ -108,26 +134,34 @@ export function Spot(props: SpotProps): ReactNode {
   let cursor = 'grab'
   if (readOnly) cursor = 'pointer'
   else if (dragging) cursor = 'grabbing'
-  let tone: 'critical' | 'default' | 'suggest' = 'suggest'
-  if (invalid) tone = 'critical'
-  else if (dragging) tone = 'default'
 
   return (
     <div style={{position: 'absolute', left: `${x}%`, top: `${y}%`, zIndex: dragging ? 1 : 0}}>
-      <Tooltip
-        disabled={dragging}
+      <Popover
+        open={!dragging && (hovered || referencePaneOpen)}
         portal
-        padding={0}
         animate
-        placement={placement}
+        radius={2}
+        shadow={2}
+        placement={placement ?? 'top'}
+        fallbackPlacements={['bottom', 'right', 'left']}
         content={
-          <Card shadow={1} padding={0} style={{minWidth: 200}}>
-            {renderPreview({value, schemaType, layout: 'default'})}
-          </Card>
+          <div onMouseEnter={handleEnter} onMouseLeave={handleLeave} style={{padding: 4}}>
+            <SpotPreview
+              value={value}
+              itemPath={itemPath}
+              schemaType={schemaType}
+              renderPreview={renderPreview}
+              target={target}
+              referencePaneOpen={referencePaneOpen}
+            />
+          </div>
         }
       >
         <Button
           onClick={handleKeyboardClick}
+          onMouseEnter={handleEnter}
+          onMouseLeave={handleLeave}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -142,9 +176,9 @@ export function Spot(props: SpotProps): ReactNode {
           padding={2}
           icon={invalid ? WarningOutlineIcon : (icon ?? PinIcon)}
           mode="ghost"
-          tone={tone}
+          tone={invalid ? 'critical' : 'default'}
         />
-      </Tooltip>
+      </Popover>
     </div>
   )
 }

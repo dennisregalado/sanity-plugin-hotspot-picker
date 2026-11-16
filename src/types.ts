@@ -1,6 +1,13 @@
 import type {Placement} from '@sanity/ui'
 import type {ComponentType} from 'react'
-import type {ArrayOfObjectsInputProps, ArraySchemaType} from 'sanity'
+import type {
+  ArrayOfObjectsInputProps,
+  ArraySchemaType,
+  FieldDefinition,
+  ImageDefinition,
+  PreviewConfig,
+  ReferenceDefinition,
+} from 'sanity'
 
 /** One array item placed on the image. `x`/`y` are percentages (0–100) of the image. */
 export type HotspotItem<Fields = {[key: string]: unknown}> = {
@@ -26,7 +33,41 @@ export interface HotspotPickerOptions {
 }
 
 /** Options for the plugin (argument to `hotspotPicker`). */
-export type HotspotPickerPluginOptions = Omit<HotspotPickerOptions, 'imagePath'>
+export interface HotspotPickerPluginOptions extends Omit<HotspotPickerOptions, 'imagePath'> {
+  /** Name of the object type the plugin registers. Defaults to `hotspotImage`. */
+  name?: string
+  /** Title of the object type. Defaults to `Hotspot image`. */
+  title?: string
+  /** Overrides for the `image` field (`fields`, `options`, `title`...). Hotspot/crop is on. */
+  image?: Partial<Omit<ImageDefinition, 'name' | 'type'>>
+  /**
+   * Each item's `reference` field (`to` is required), e.g. `{title: 'Product', to: [{type:
+   * 'product'}]}`. Required by default. The spot's tooltip previews the referenced document.
+   * Leave out for items without a reference.
+   */
+  reference?: Omit<ReferenceDefinition, 'name' | 'type'>
+  /** The items in the `items` array. */
+  item?: {
+    /** Type name of each item. Defaults to `spot`. */
+    name?: string
+    /** Title of each item. Defaults to the reference's title, else `Spot`. */
+    title?: string
+    /** Title of the `items` field. Defaults to `Items`. */
+    listTitle?: string
+    icon?: ComponentType
+    /** Extra fields on each item, after `reference`. */
+    fields?: FieldDefinition[]
+    /** Preview of each item in the list. Defaults to the referenced document's `title`. */
+    preview?: PreviewConfig
+  }
+}
+
+/** The plugin's object type's value. */
+export type HotspotImageValue<Fields = {[key: string]: unknown}> = {
+  _type?: string
+  image?: {_type?: string; asset?: {_ref: string}; [key: string]: unknown}
+  items?: HotspotItem<Fields & {reference?: {_ref: string; _type?: string}}>[]
+}
 
 export type HotspotArraySchemaType = Omit<ArraySchemaType, 'options'> & {
   options?: ArraySchemaType['options'] & {hotspotPicker?: HotspotPickerOptions | true}
