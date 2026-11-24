@@ -120,12 +120,13 @@ export function Spot(props: SpotProps): ReactNode {
     setDragPosition(null)
   }, [])
 
-  // Pointer clicks open from `pointerup`; Enter/Space fire a click with `detail` 0.
-  const handleKeyboardClick = useCallback(
+  // Pointer clicks open from `pointerup`; Enter/Space fire a click with `detail` 0. Read-only spots
+  // don't track the pointer (they can't be dragged), so any click opens them.
+  const handleClick = useCallback(
     (event: MouseEvent<HTMLButtonElement>) => {
-      if (event.detail === 0) onOpen(value._key)
+      if (readOnly || event.detail === 0) onOpen(value._key)
     },
-    [onOpen, value._key],
+    [readOnly, onOpen, value._key],
   )
 
   const x = dragPosition?.x ?? value.x ?? 50
@@ -159,7 +160,7 @@ export function Spot(props: SpotProps): ReactNode {
         }
       >
         <Button
-          onClick={handleKeyboardClick}
+          onClick={handleClick}
           onMouseEnter={handleEnter}
           onMouseLeave={handleLeave}
           onPointerDown={handlePointerDown}

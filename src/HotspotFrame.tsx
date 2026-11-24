@@ -12,6 +12,7 @@ import {
   set,
   setIfMissing,
   useClient,
+  useResolveInitialValueForType,
 } from 'sanity'
 
 import {Spot} from './Spot'
@@ -65,19 +66,26 @@ export function HotspotFrame(props: HotspotFrameProps): ReactNode {
   const preview = useImagePreview(image, options.imageWidth)
   const frameRef = useRef<HTMLDivElement | null>(null)
 
+  // New spots get the item type's initial values, like the Studio's own "Add item".
+  const resolveInitialValue = useResolveInitialValueForType()
   const handleImageClick = useCallback(
     (event: MouseEvent<HTMLDivElement>) => {
       if (readOnly || event.target !== event.currentTarget) return
       const rect = event.currentTarget.getBoundingClientRect()
-      const item: HotspotItem = {
-        _key: randomKey(),
-        _type: itemType.name,
-        x: toPercent(((event.clientX - rect.left) / rect.width) * 100),
-        y: toPercent(((event.clientY - rect.top) / rect.height) * 100),
-      }
-      onPatch([setIfMissing([]), insert([item], 'after', [-1])])
+      const x = toPercent(((event.clientX - rect.left) / rect.width) * 100)
+      const y = toPercent(((event.clientY - rect.top) / rect.height) * 100)
+      const proto = {_key: randomKey(), _type: itemType.name}
+      resolveInitialValue(itemType, proto)
+        .catch((error: unknown) => {
+          console.error(`Could not resolve initial value for type: ${itemType.name}`, error)
+          return undefined
+        })
+        .then((initial: Record<string, unknown> | undefined) => {
+          const item: HotspotItem = {...initial, ...proto, x, y}
+          onPatch([setIfMissing([]), insert([item], 'after', [-1])])
+        })
     },
-    [readOnly, onPatch, itemType.name],
+    [readOnly, onPatch, itemType, resolveInitialValue],
   )
 
   const handleMove = useCallback(
@@ -90,12 +98,14 @@ export function HotspotFrame(props: HotspotFrameProps): ReactNode {
   if (!preview) return null
 
   return (
-    <Card border radius={2} overflow="hidden">
+    // Only the image is rounded and clipped: spots at the edges overflow the frame, so they stay whole.
+    <Card border radius={2}>
       <div
         ref={frameRef}
         onClick={handleImageClick}
         style={{
           position: 'relative',
+          borderRadius: 'inherit',
           aspectRatio: preview.aspectRatio,
           backgroundImage: `url(${preview.url})`,
           backgroundSize: '100% 100%',

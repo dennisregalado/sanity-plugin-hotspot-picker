@@ -4,17 +4,13 @@ import {
   defineField,
   defineType,
   type FieldDefinition,
-  type ObjectFieldProps,
   type ObjectInputProps,
   type PreviewValue,
 } from 'sanity'
 
 import {HotspotObjectInput} from './HotspotObjectInput'
+import {ImageField} from './ImageField'
 import type {HotspotPickerPluginOptions} from './types'
-
-function ImageField(props: ObjectFieldProps): React.ReactElement {
-  return React.createElement(React.Fragment, null, props.children)
-}
 
 /** Default name of the object type the plugin registers. */
 export const DEFAULT_TYPE_NAME = 'hotspotImage'
@@ -68,7 +64,7 @@ export function createHotspotType(
       defineField({
         options: {hotspot: true},
         ...image,
-        // Just the input: the object field's own title stands for it, like the search listing.
+        // No label: the object field's own title stands for it, like the search listing.
         components: {field: ImageField, ...image?.components},
         name: 'image',
         title: image?.title ?? 'Image',

@@ -1,5 +1,5 @@
 import {EditIcon} from '@sanity/icons/Edit'
-import {Box, Button, Stack, Text} from '@sanity/ui'
+import {Box, Button, Card, Stack, Text} from '@sanity/ui'
 import {Tooltip} from '@sanity/ui/tooltip'
 import {createContext, type ReactNode, useCallback, useMemo, useState} from 'react'
 import {
@@ -65,6 +65,19 @@ export function HotspotObjectInput(props: HotspotObjectInputProps): ReactNode {
     (inputProps) => {
       const isImage =
         inputProps.path.length === path.length + 1 && inputProps.path[path.length] === 'image'
+      // Spots are stored relative to the cropped image, so a new crop moves them all.
+      if (editing && isImage && hasImage && value?.items?.length) {
+        return (
+          <Stack gap={3}>
+            <Card padding={3} radius={2} tone="caution" border>
+              <Text size={1}>
+                Spots are positioned on the cropped image, so changing the crop moves them.
+              </Text>
+            </Card>
+            {parentRenderInput(inputProps)}
+          </Stack>
+        )
+      }
       if (editing || !isImage || !itemType) return parentRenderInput(inputProps)
       return (
         <HotspotFrame
@@ -83,6 +96,7 @@ export function HotspotObjectInput(props: HotspotObjectInputProps): ReactNode {
     },
     [
       editing,
+      hasImage,
       path,
       itemType,
       parentRenderInput,
@@ -99,9 +113,11 @@ export function HotspotObjectInput(props: HotspotObjectInputProps): ReactNode {
 
   return (
     <HotspotObjectContext.Provider value={context}>
-      <Stack gap={5}>
+      <Stack gap={5} style={{position: 'relative'}}>
         {hasImage && (
-          <Box style={{position: 'absolute', top: 0, right: 0}}>
+          // In the object field's header, level with its title: the header ends a gap above the
+          // input, and its actions (field actions, comments) take the right end, so leave room.
+          <Box style={{position: 'absolute', bottom: '100%', right: 58, marginBottom: 8}}>
             <Tooltip
               animate
               delay={5}
