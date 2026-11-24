@@ -2,12 +2,15 @@
 
 A Sanity Studio field for shoppable images, annotated diagrams and store maps: an image with draggable spots on it, each spot an item that can reference a document.
 
-- **Click the image** to add a spot where you clicked.
-- **Drag a spot** to move it. Its position is stored as `x`/`y` percentages of the image.
+- **Click the image** to add a spot where you clicked. Its item opens right away, like the Studio's own "Add item". An empty image shows a "Click the image to add a spot" hint.
+- **Drag a spot** to move it. Its position is stored as `x`/`y` percentages of the image. Press Escape mid-drag to put it back.
 - **Click a spot** to edit its item.
-- **Hover a spot** to preview its referenced document (with its draft/published status). Click the preview to open the document in the next pane; the spot stays highlighted while it's open.
-- **Edit image**: the pencil button swaps the spots for the native image input (upload, crop, hotspot). With no image set, the native input always shows.
-- **Spots with validation errors** show a warning icon and turn red.
+- **Hover a spot** to preview its referenced document (with its draft/published status). Click the preview to open the document in the next pane; the spot stays highlighted while it's open. The preview also has **Duplicate** (a copy, slightly offset) and **Remove** buttons.
+- **Keyboard**: Tab to a spot to open its preview. Arrow keys move it 0.5% per press (5% with Shift), Delete or Backspace removes it, and Enter opens its item. Read-only fields ignore these.
+- **Linked to the list**: the spot of the item that's open or focused is highlighted, and so is the spot of the row your pointer is over in the list. Turn on `numbered` to number the spots in list order.
+- **Edit image**: the pencil button swaps the spots for the native image input (upload, crop, hotspot); **Done** brings the spots back. With no image set, the native input always shows.
+- **Spots read on any photo**: a solid marker with a white ring and a shadow. Spots with validation errors show a warning icon and turn red.
+- **Sharp preview**: the image is requested at the size it's shown, times the screen's pixel density, with a loading skeleton. Very tall images are capped in height (the width follows), and the image's `alt` field, if it has one, becomes its alt text.
 - **Crop-aware**: spots are placed on the cropped image, so positions match a cropped image on your frontend.
 - The Studio's own array list stays under the image, so adding, reordering, removing and editing work as usual.
 
@@ -96,7 +99,8 @@ hotspotPicker({
 
   // The spots
   icon: PinIcon, // icon on each spot
-  imageWidth: 1200, // width of the preview image requested from the Sanity CDN
+  numbered: false, // number the spots 1, 2, 3… in list order instead of the icon
+  imageWidth: 2400, // largest width of the preview image requested from the Sanity CDN
   tooltipPlacement: (item) => undefined, // where a spot's popover opens; see below
 })
 ```
@@ -114,7 +118,8 @@ hotspotPicker({
 | `item.fields`      | none                           | Extra fields on each item, after `reference`.                                                      |
 | `item.preview`     | the reference's `title`        | Preview of each item in the list.                                                                  |
 | `icon`             | Pin                            | Icon component on each spot.                                                                       |
-| `imageWidth`       | `1200`                         | Width of the preview image requested from the Sanity CDN.                                          |
+| `numbered`         | `false`                        | Number the spots (1, 2, 3… in list order) instead of showing the icon, so they match the list.     |
+| `imageWidth`       | `2400`                         | Largest preview width requested from the Sanity CDN; the frame asks for its size × pixel density.  |
 | `tooltipPlacement` | automatic                      | `(item) => Placement`: where a spot's popover opens, e.g. from a field on the item.                |
 
 Open the popover toward a placement stored on the item:
@@ -184,7 +189,18 @@ fields: [
 ]
 ```
 
-The plugin's `icon`, `imageWidth` and `tooltipPlacement` apply here too; a field's `options.hotspotPicker` overrides them (`hotspotPicker: true` uses the plugin's). Without the plugin, set the input yourself with `components: {input: HotspotPicker}`.
+The plugin's `icon`, `numbered`, `imageWidth` and `tooltipPlacement` apply here too; a field's `options.hotspotPicker` overrides them (`hotspotPicker: true` uses the plugin's). Without the plugin, set the input yourself with `components: {input: HotspotPicker}`.
+
+## Development
+
+There's no Studio in the repo. `dev/harness` is a small Vite page that renders the inputs with a mocked `sanity` module, for checking them in a browser (it isn't published):
+
+```sh
+cd dev/harness
+npm install
+npm run images # downloads the sample photos
+npm run dev # http://localhost:5199/?scene=busy (also photo, empty, loading, tall; &numbered=1, &readOnly=1)
+```
 
 ## Releasing
 

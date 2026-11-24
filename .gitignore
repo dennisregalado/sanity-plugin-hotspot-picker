@@ -58,3 +58,6 @@ yalc.lock
 
 # Compiled plugin
 dist
+
+# Dev harness sample photos (npm run images)
+dev/harness/images

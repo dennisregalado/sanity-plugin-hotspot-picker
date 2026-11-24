@@ -1,0 +1,12 @@
+{
+  "name": "hotspot-picker-harness",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "images": "mkdir -p images && curl -sL -o images/busy.jpg https://picsum.photos/id/1067/1600/1000 && curl -sL -o images/photo.jpg https://picsum.photos/id/1011/1600/1067 && curl -sL -o images/tall.jpg https://picsum.photos/id/1043/800/2000"
+  },
+  "devDependencies": {
+    "vite": "^7.3.0"
+  }
+}

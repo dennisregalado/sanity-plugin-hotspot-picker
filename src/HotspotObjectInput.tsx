@@ -1,3 +1,4 @@
+import {CheckmarkIcon} from '@sanity/icons/Checkmark'
 import {EditIcon} from '@sanity/icons/Edit'
 import {Box, Button, Stack, Text} from '@sanity/ui'
 import {Tooltip} from '@sanity/ui/tooltip'
@@ -14,12 +15,19 @@ import {
   useFormCallbacks,
 } from 'sanity'
 
+import {type HoverStore, useActiveKeys, useHoverStore} from './highlight'
 import {HotspotFrame} from './HotspotFrame'
 import {useInvalidKeys} from './HotspotPickerInput'
 import type {HotspotImageValue, HotspotItem, HotspotPickerOptions} from './types'
 
-/** Set by the object input: its `items` field leaves the image to it. `null` outside it. */
-export const HotspotObjectContext = createContext<{editing: boolean} | null>(null)
+/**
+ * Set by the object input: its `items` field leaves the image to it, and reports the row hovered
+ * in its list to `hoverStore`. `null` outside it.
+ */
+export const HotspotObjectContext = createContext<{
+  editing: boolean
+  hoverStore: HoverStore
+} | null>(null)
 
 const NO_MEMBERS: ArrayOfObjectsFormNode['members'] = []
 
@@ -36,7 +44,8 @@ export function HotspotObjectInput(props: HotspotObjectInputProps): ReactNode {
   const [isEditing, setIsEditing] = useState(false)
   const editing = isEditing || !hasImage
   const handleEditToggle = useCallback(() => setIsEditing((current) => !current), [])
-  const context = useMemo(() => ({editing}), [editing])
+  const hoverStore = useHoverStore()
+  const context = useMemo(() => ({editing, hoverStore}), [editing, hoverStore])
 
   const itemsMember = props.members.find(
     (member) => member.kind === 'field' && member.name === 'items',
@@ -44,6 +53,7 @@ export function HotspotObjectInput(props: HotspotObjectInputProps): ReactNode {
   const itemsField =
     itemsMember?.kind === 'field' ? (itemsMember.field as ArrayOfObjectsFormNode) : undefined
   const invalidKeys = useInvalidKeys(itemsField?.members ?? NO_MEMBERS)
+  const activeKeys = useActiveKeys(itemsField?.members ?? NO_MEMBERS)
   const itemsType = props.schemaType.fields.find((field) => field.name === 'items')?.type as
     ArraySchemaType | undefined
   const itemType = itemsType?.of[0] as ObjectSchemaType | undefined
@@ -73,6 +83,8 @@ export function HotspotObjectInput(props: HotspotObjectInputProps): ReactNode {
           arrayPath={arrayPath}
           itemType={itemType}
           invalidKeys={invalidKeys}
+          activeKeys={activeKeys}
+          hoverStore={hoverStore}
           readOnly={readOnly}
           options={defaults ?? {}}
           renderPreview={renderPreview}
@@ -89,6 +101,8 @@ export function HotspotObjectInput(props: HotspotObjectInputProps): ReactNode {
       value,
       arrayPath,
       invalidKeys,
+      activeKeys,
+      hoverStore,
       readOnly,
       defaults,
       renderPreview,
@@ -102,26 +116,39 @@ export function HotspotObjectInput(props: HotspotObjectInputProps): ReactNode {
       <Stack gap={5}>
         {hasImage && (
           <Box style={{position: 'absolute', top: 0, right: 0}}>
-            <Tooltip
-              animate
-              delay={5}
-              placement="top"
-              content={
-                <Text size={1} weight="medium">
-                  Edit image
-                </Text>
-              }
-              portal
-            >
+            {isEditing ? (
+              // While editing, a labelled button returns to the spots.
               <Button
-                mode="bleed"
-                icon={EditIcon}
+                mode="ghost"
+                tone="primary"
+                icon={CheckmarkIcon}
+                text="Done"
+                fontSize={1}
                 padding={2}
                 onClick={handleEditToggle}
-                selected={isEditing}
-                aria-label="Edit image"
+                aria-label="Done editing image"
               />
-            </Tooltip>
+            ) : (
+              <Tooltip
+                animate
+                delay={5}
+                placement="top"
+                content={
+                  <Text size={1} weight="medium">
+                    Edit image
+                  </Text>
+                }
+                portal
+              >
+                <Button
+                  mode="bleed"
+                  icon={EditIcon}
+                  padding={2}
+                  onClick={handleEditToggle}
+                  aria-label="Edit image"
+                />
+              </Tooltip>
+            )}
           </Box>
         )}
         {props.renderDefault({...props, renderInput})}

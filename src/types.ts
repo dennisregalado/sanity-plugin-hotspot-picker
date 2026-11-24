@@ -24,8 +24,16 @@ export interface HotspotPickerOptions {
    * nested fields (`media.image`). Defaults to `image`.
    */
   imagePath?: string
-  /** Width of the preview image requested from the Sanity CDN. Defaults to `1200`. */
+  /**
+   * Largest width requested from the Sanity CDN for the preview image. The frame requests the
+   * size it's shown at, times the screen's pixel density, up to this. Defaults to `2400`.
+   */
   imageWidth?: number
+  /**
+   * Number the spots (1, 2, 3… in the array's order) so they match the list. Defaults to `false`
+   * (each spot shows the icon).
+   */
+  numbered?: boolean
   /** Icon on each spot. Defaults to a pin. */
   icon?: ComponentType
   /** Where a spot's preview tooltip opens, from the item's value. Defaults to automatic. */
