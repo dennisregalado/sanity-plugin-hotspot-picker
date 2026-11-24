@@ -1,5 +1,5 @@
 import {Card, Flex, Text} from '@sanity/ui'
-import {type ReactNode, useCallback, useContext, useMemo} from 'react'
+import {type ReactNode, useCallback, useContext, useEffect, useMemo} from 'react'
 import {
   type ArrayOfObjectsMember,
   type FormPatch,
@@ -10,6 +10,7 @@ import {
   useFormValue,
 } from 'sanity'
 
+import {useActiveKeys, useHoveredKey, useHoverRenderItem, useHoverStore} from './highlight'
 import {DEFAULT_IMAGE_WIDTH, HotspotFrame} from './HotspotFrame'
 import {HotspotObjectContext} from './HotspotObjectInput'
 import type {HotspotPickerInputProps, HotspotPickerOptions} from './types'
@@ -57,8 +58,23 @@ export function HotspotPickerInput(
   props: HotspotPickerInputProps & {defaults?: HotspotPickerOptions},
 ): ReactNode {
   const objectContext = useContext(HotspotObjectContext)
-  if (objectContext) return props.renderDefault(props as unknown as InputProps)
+  if (objectContext) return <HotspotList {...props} hoverStore={objectContext.hoverStore} />
   return <StandaloneHotspotPicker {...props} />
+}
+
+/** The Studio's own array list, reporting the hovered row so its spot can be highlighted. */
+function HotspotList(
+  props: HotspotPickerInputProps & {hoverStore: ReturnType<typeof useHoverStore>},
+): ReactNode {
+  const {hoverStore, ...rest} = props
+  const renderItem = useHoverRenderItem(rest.renderItem, hoverStore)
+  // Rows removed while hovered never get `mouseleave`: forget them.
+  const hoveredKey = useHoveredKey(hoverStore)
+  const hoveredRemoved = Boolean(hoveredKey && !rest.value?.some((i) => i._key === hoveredKey))
+  useEffect(() => {
+    if (hoveredRemoved) hoverStore.set(null)
+  }, [hoveredRemoved, hoverStore])
+  return rest.renderDefault({...rest, renderItem} as unknown as InputProps)
 }
 
 function StandaloneHotspotPicker(
@@ -73,6 +89,8 @@ function StandaloneHotspotPicker(
   )
   const image = useFormValue(imagePath) as ImageValue | undefined
   const invalidKeys = useInvalidKeys(members)
+  const activeKeys = useActiveKeys(members)
+  const hoverStore = useHoverStore()
 
   const handlePatch = useCallback(
     (patches: FormPatch[]) => onChange(PatchEvent.from(patches)),
@@ -92,6 +110,8 @@ function StandaloneHotspotPicker(
           arrayPath={path}
           itemType={itemType}
           invalidKeys={invalidKeys}
+          activeKeys={activeKeys}
+          hoverStore={hoverStore}
           readOnly={readOnly}
           options={options}
           renderPreview={renderPreview}
@@ -103,7 +123,7 @@ function StandaloneHotspotPicker(
           <Text size={1}>Add an image first to place spots on it.</Text>
         </Card>
       )}
-      {props.renderDefault(props as unknown as InputProps)}
+      <HotspotList {...props} hoverStore={hoverStore} />
     </Flex>
   )
 }
