@@ -99,9 +99,11 @@ export function HotspotObjectInput(props: HotspotObjectInputProps): ReactNode {
 
   return (
     <HotspotObjectContext.Provider value={context}>
-      <Stack gap={5}>
+      <Stack gap={5} style={{position: 'relative'}}>
         {hasImage && (
-          <Box style={{position: 'absolute', top: 0, right: 0}}>
+          // In the object field's header, level with its title: the header ends a gap above the
+          // input, and its actions (field actions, comments) take the right end, so leave room.
+          <Box style={{position: 'absolute', bottom: '100%', right: 58, marginBottom: 8}}>
             <Tooltip
               animate
               delay={5}
