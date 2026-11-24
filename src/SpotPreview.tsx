@@ -1,5 +1,5 @@
 import {Box, Button, Card, Stack, Text} from '@sanity/ui'
-import {type ReactNode, useEffect, useMemo, useState} from 'react'
+import {type ReactNode, useContext, useEffect, useMemo, useState} from 'react'
 import {
   isReferenceSchemaType,
   type ObjectSchemaType,
@@ -12,7 +12,7 @@ import {
   useDocumentPreviewStore,
   usePerspective,
 } from 'sanity'
-import {usePaneRouter} from 'sanity/structure'
+import {PaneRouterContext, type PaneRouterContextValue} from 'sanity/structure'
 
 import type {HotspotItem} from './types'
 
@@ -65,11 +65,26 @@ export function useReferenceTarget(
   return {fieldName: field?.name, documentId, toType, status, foundType: lookup?.type}
 }
 
+/**
+ * The Structure tool's pane router, or `null` outside it (a custom tool, a form rendered elsewhere).
+ * Without a provider the context holds a placeholder whose links throw; it has no pane group.
+ */
+function usePaneRouterIfAvailable(): PaneRouterContextValue | null {
+  const paneRouter = useContext(PaneRouterContext)
+  return paneRouter.groupLength > 0 ? paneRouter : null
+}
+
+/** Outside the Structure tool there's no next pane to open the document in: a plain preview. */
+function PlainReferenceLink(props: {children?: ReactNode}): ReactNode {
+  return props.children
+}
+
 /** Whether the referenced document is open in the pane next to this one (as link-picker checks). */
 export function useReferencePaneOpen(target: ReferenceTarget): boolean {
-  const {routerPanesState, groupIndex} = usePaneRouter()
+  const paneRouter = usePaneRouterIfAvailable()
   const {documentId, toType} = target
-  if (!documentId || !toType) return false
+  if (!paneRouter || !documentId || !toType) return false
+  const {routerPanesState, groupIndex} = paneRouter
   const nextPaneGroup = Array.isArray(routerPanesState) ? routerPanesState[groupIndex + 1] : null
   let siblings: unknown[] = []
   if (Array.isArray(nextPaneGroup)) siblings = nextPaneGroup
@@ -103,7 +118,7 @@ export interface SpotPreviewProps {
 export function SpotPreview(props: SpotPreviewProps): ReactNode {
   const {value, itemPath, schemaType, renderPreview, target, referencePaneOpen} = props
   const perspective = usePerspective()
-  const {ReferenceChildLink} = usePaneRouter()
+  const ReferenceChildLink = usePaneRouterIfAvailable()?.ReferenceChildLink ?? PlainReferenceLink
   const {fieldName, documentId, toType} = target
 
   let preview: ReactNode
