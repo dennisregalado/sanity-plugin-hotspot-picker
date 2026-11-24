@@ -1,4 +1,4 @@
-import {Box, Button} from '@sanity/ui'
+import {Box, Button, Card, Stack, Text} from '@sanity/ui'
 import {type ReactNode, useEffect, useMemo, useState} from 'react'
 import {
   isReferenceSchemaType,
@@ -9,7 +9,7 @@ import {
   SanityDefaultPreview,
   type SchemaType,
   SearchResultItemPreview,
-  useClient,
+  useDocumentPreviewStore,
   usePerspective,
 } from 'sanity'
 import {usePaneRouter} from 'sanity/structure'
@@ -21,6 +21,13 @@ export interface ReferenceTarget {
   fieldName?: string
   documentId?: string
   toType?: SchemaType
+  /**
+   * `loading` while the document's type is looked up, `missing` when the document doesn't exist
+   * (or its type isn't one the field allows), else `resolved`.
+   */
+  status: 'loading' | 'resolved' | 'missing'
+  /** The type found for the document, when it isn't one the field allows. */
+  foundType?: string
 }
 
 /** The item's `reference` field (else its first reference field) and the document it points at. */
@@ -38,20 +45,24 @@ export function useReferenceTarget(
   const documentId = field ? (value[field.name] as {_ref?: string} | undefined)?._ref : undefined
   const singleType = refType?.to.length === 1 ? refType.to[0] : undefined
 
-  // With several allowed types, look up which one the document is.
-  const client = useClient({apiVersion: '2025-01-01'})
-  const [fetched, setFetched] = useState<{id: string; type: string | null} | null>(null)
+  // With several allowed types, look up which one the document is, in the current perspective
+  // (drafts and release versions included), as the Studio's reference input does.
+  const documentPreviewStore = useDocumentPreviewStore()
+  const {perspectiveStack} = usePerspective()
+  const [fetched, setFetched] = useState<{id: string; type: string | undefined} | null>(null)
   useEffect(() => {
     if (!documentId || singleType) return undefined
-    const subscription = client.observable
-      .fetch<string | null>(`*[_id in [$id, "drafts." + $id]][0]._type`, {id: documentId})
+    const subscription = documentPreviewStore
+      .observeDocumentTypeFromId(documentId, undefined, perspectiveStack)
       .subscribe((type) => setFetched({id: documentId, type}))
     return () => subscription.unsubscribe()
-  }, [client, documentId, singleType])
-  const fetchedType = fetched && fetched.id === documentId ? fetched.type : null
+  }, [documentPreviewStore, documentId, singleType, perspectiveStack])
+  const lookup = fetched && fetched.id === documentId ? fetched : null
 
-  const toType = singleType ?? refType?.to.find((t) => t.name === fetchedType)
-  return {fieldName: field?.name, documentId, toType}
+  const toType = singleType ?? refType?.to.find((t) => t.name === lookup?.type)
+  let status: ReferenceTarget['status'] = 'resolved'
+  if (documentId && !toType) status = lookup ? 'missing' : 'loading'
+  return {fieldName: field?.name, documentId, toType, status, foundType: lookup?.type}
 }
 
 /** Whether the referenced document is open in the pane next to this one (as link-picker checks). */
@@ -122,6 +133,8 @@ export function SpotPreview(props: SpotPreviewProps): ReactNode {
         </Button>
       </ReferenceChildLink>
     )
+  } else if (documentId && target.status === 'missing') {
+    preview = <MissingReference documentId={documentId} foundType={target.foundType} />
   } else if (documentId) {
     preview = <SanityDefaultPreview isPlaceholder layout="compact" />
   } else {
@@ -129,4 +142,30 @@ export function SpotPreview(props: SpotPreviewProps): ReactNode {
   }
 
   return <Box style={{minWidth: 240}}>{preview}</Box>
+}
+
+/** A reference to a document that doesn't exist, worded like the Studio's reference input. */
+function MissingReference(props: {documentId: string; foundType?: string}): ReactNode {
+  const {documentId, foundType} = props
+  return (
+    <Card padding={3} radius={2} tone="critical" border>
+      <Stack gap={3}>
+        <Text size={1} weight="medium">
+          {foundType ? 'Invalid reference type' : 'Not found'}
+        </Text>
+        <Text size={1} muted>
+          {foundType ? (
+            <>
+              The referenced document is a <code>{foundType}</code>, which this field doesn&apos;t
+              allow.
+            </>
+          ) : (
+            <>
+              The referenced document does not exist (ID: <code>{documentId}</code>).
+            </>
+          )}
+        </Text>
+      </Stack>
+    </Card>
+  )
 }
