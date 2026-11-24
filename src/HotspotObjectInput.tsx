@@ -1,5 +1,5 @@
 import {EditIcon} from '@sanity/icons/Edit'
-import {Box, Button, Stack, Text} from '@sanity/ui'
+import {Box, Button, Card, Stack, Text} from '@sanity/ui'
 import {Tooltip} from '@sanity/ui/tooltip'
 import {createContext, type ReactNode, useCallback, useMemo, useState} from 'react'
 import {
@@ -65,6 +65,19 @@ export function HotspotObjectInput(props: HotspotObjectInputProps): ReactNode {
     (inputProps) => {
       const isImage =
         inputProps.path.length === path.length + 1 && inputProps.path[path.length] === 'image'
+      // Spots are stored relative to the cropped image, so a new crop moves them all.
+      if (editing && isImage && hasImage && value?.items?.length) {
+        return (
+          <Stack gap={3}>
+            <Card padding={3} radius={2} tone="caution" border>
+              <Text size={1}>
+                Spots are positioned on the cropped image, so changing the crop moves them.
+              </Text>
+            </Card>
+            {parentRenderInput(inputProps)}
+          </Stack>
+        )
+      }
       if (editing || !isImage || !itemType) return parentRenderInput(inputProps)
       return (
         <HotspotFrame
@@ -83,6 +96,7 @@ export function HotspotObjectInput(props: HotspotObjectInputProps): ReactNode {
     },
     [
       editing,
+      hasImage,
       path,
       itemType,
       parentRenderInput,

@@ -8,7 +8,7 @@ A Sanity Studio field for shoppable images, annotated diagrams and store maps: a
 - **Hover a spot** to preview its referenced document (with its draft/published status). Click the preview to open the document in the next pane; the spot stays highlighted while it's open.
 - **Edit image**: the pencil button swaps the spots for the native image input (upload, crop, hotspot). With no image set, the native input always shows.
 - **Spots with validation errors** show a warning icon and turn red.
-- **Crop-aware**: spots are placed on the cropped image, so positions match a cropped image on your frontend.
+- **Crop-aware**: spots are placed on the cropped image, so positions match a cropped image on your frontend. Changing the crop later moves every spot with it (see [Cropping](#cropping)).
 - The Studio's own array list stays under the image, so adding, reordering, removing and editing work as usual.
 
 ## Install
@@ -139,6 +139,10 @@ desktop: {
 ```
 
 `x` and `y` are percentages (0–100, two decimals) from the image's top-left corner, measured on the cropped image.
+
+### Cropping
+
+Because positions are relative to the crop, changing the crop moves every spot: a spot at `x: 50` stays in the middle of whatever the new crop shows, not on the same part of the photo. Re-check spots after re-cropping an image that already has them. In edit mode, the input shows a note about this when the image has spots.
 
 ## GROQ
 
