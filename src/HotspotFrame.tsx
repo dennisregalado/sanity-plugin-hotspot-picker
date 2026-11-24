@@ -98,12 +98,14 @@ export function HotspotFrame(props: HotspotFrameProps): ReactNode {
   if (!preview) return null
 
   return (
-    <Card border radius={2} overflow="hidden">
+    // Only the image is rounded and clipped: spots at the edges overflow the frame, so they stay whole.
+    <Card border radius={2}>
       <div
         ref={frameRef}
         onClick={handleImageClick}
         style={{
           position: 'relative',
+          borderRadius: 'inherit',
           aspectRatio: preview.aspectRatio,
           backgroundImage: `url(${preview.url})`,
           backgroundSize: '100% 100%',
